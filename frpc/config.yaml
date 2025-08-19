@@ -1,0 +1,22 @@
+name: "FRPC Client"
+version: "0.2.0"
+slug: "frpc"
+description: "FRPC client for Home Assistant"
+arch:
+  - amd64
+  - armv7
+  - aarch64
+startup: services
+boot: auto
+options:
+  server_addr: "your.frp.server.com"
+  server_port: 7000
+  user: "hass"
+  token: "password"
+  frp_version: "0.61.0"
+schema:
+  server_addr: str
+  server_port: int
+  user: str
+  token: str
+  frp_version: str
