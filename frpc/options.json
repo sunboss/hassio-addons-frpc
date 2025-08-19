@@ -1,0 +1,21 @@
+{
+  "frp_server": "1234r.com",
+  "frp_server_port": 7000,
+  "frp_token": "sunricloud",
+  "tunnels": [
+    {
+      "name": "homeassistant",
+      "type": "tcp",
+      "local_host": "192.168.1.66",
+      "local_port": 8123,
+      "remote_port": 7001
+    },
+    {
+      "name": "web",
+      "type": "http",
+      "local_host": "192.168.1.66",
+      "local_port": 80,
+      "subdomain": "ha"
+    }
+  ]
+}
