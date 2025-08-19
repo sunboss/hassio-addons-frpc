@@ -1,19 +1,41 @@
-#!/usr/bin/env bash
+#!/usr/bin/with-contenv bashio
+
 CONFIG_PATH=/data/options.json
+FRP_SERVER=$(jq -r .frp_server $CONFIG_PATH)
+FRP_SERVER_PORT=$(jq -r .frp_server_port $CONFIG_PATH)
+FRP_TOKEN=$(jq -r .frp_token $CONFIG_PATH)
 
-SERVER_ADDR=$(jq --raw-output ".server_addr" $CONFIG_PATH)
-SERVER_PORT=$(jq --raw-output ".server_port" $CONFIG_PATH)
-USER=$(jq --raw-output ".user" $CONFIG_PATH)
-TOKEN=$(jq --raw-output ".token" $CONFIG_PATH)
-FRP_VERSION=$(jq --raw-output ".frp_version" $CONFIG_PATH)
-
-cat <<EOF > /etc/frpc.ini
+cat > /etc/frpc.ini <<EOF
 [common]
-server_addr = ${SERVER_ADDR}
-server_port = ${SERVER_PORT}
-user = ${USER}
-token = ${TOKEN}
+server_addr = ${FRP_SERVER}
+server_port = ${FRP_SERVER_PORT}
+token = ${FRP_TOKEN}
 EOF
 
-echo "Starting FRPC v${FRP_VERSION} with server ${SERVER_ADDR}:${SERVER_PORT}"
-/usr/local/bin/frpc -c /etc/frpc.ini 2>&1
+for row in $(jq -c '.tunnels[]' $CONFIG_PATH); do
+    NAME=$(echo $row | jq -r .name)
+    TYPE=$(echo $row | jq -r .type)
+    LOCAL_HOST=$(echo $row | jq -r .local_host)
+    LOCAL_PORT=$(echo $row | jq -r .local_port)
+    REMOTE_PORT=$(echo $row | jq -r .remote_port)
+    SUBDOMAIN=$(echo $row | jq -r .subdomain)
+
+    echo "[$NAME]" >> /etc/frpc.ini
+    echo "type = $TYPE" >> /etc/frpc.ini
+    echo "local_ip = $LOCAL_HOST" >> /etc/frpc.ini
+    echo "local_port = $LOCAL_PORT" >> /etc/frpc.ini
+
+    if [ "$TYPE" = "tcp" ] && [ "$REMOTE_PORT" != "null" ]; then
+        echo "remote_port = $REMOTE_PORT" >> /etc/frpc.ini
+    fi
+
+    if [ "$TYPE" = "http" ] && [ "$SUBDOMAIN" != "null" ]; then
+        echo "subdomain = $SUBDOMAIN" >> /etc/frpc.ini
+    fi
+
+    echo "" >> /etc/frpc.ini
+done
+
+echo "启动 frpc..."
+cat /etc/frpc.ini
+exec frpc -c /etc/frpc.ini
