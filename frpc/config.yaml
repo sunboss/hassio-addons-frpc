@@ -1,38 +1,30 @@
-name: "FRPC Client"
-version: "1.2.0"
-slug: "frpc"
-description: "FRPC client for Home Assistant"
-arch:
-  - amd64
-  - armv7
-  - aarch64
-startup: services
-boot: auto
-options:
- frp_server: 1234r.com
- frp_server_port: 7000
- frp_token: sunricloud
- local_host: 192.168.1.66
- local_port: 8123
- tunnel_type: tcp
- http_domain: ha1.sunricloud.com
- tcp_remote_port: 7001
- http_subdomain_host: 万达大公馆1#405
-options:
-  server_addr: "your.frp.server.com"
-  server_port: 7000
-  user: "hass"
-  token: "password"
-  frp_version: "0.61.0"
-options:
-  server_addr: "your.frp.server.com"
-  server_port: 7000
-  user: "hass"
-  token: "password"
-  frp_version: "0.61.0"
-schema:
-  server_addr: str
-  server_port: int
-  user: str
-  token: str
-  frp_version: str
+{
+  "name": "FRPC",
+  "version": "1.0.0",
+  "slug": "frpc",
+  "description": "FRP client (frpc) for Home Assistant",
+  "arch": ["aarch64", "amd64", "armv7"],
+  "startup": "services",
+  "boot": "auto",
+  "options": {
+    "frp_server": "example.com",
+    "frp_server_port": 7000,
+    "frp_token": "changeme",
+    "tunnels": []
+  },
+  "schema": {
+    "frp_server": "str",
+    "frp_server_port": "int",
+    "frp_token": "str",
+    "tunnels": [
+      {
+        "name": "str",
+        "type": "str",
+        "local_host": "str",
+        "local_port": "int",
+        "remote_port": "int?",
+        "subdomain": "str?"
+      }
+    ]
+  }
+}
