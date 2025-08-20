@@ -1,41 +1,41 @@
 #!/usr/bin/with-contenv bashio
+# 启动 frpc
 
-CONFIG_PATH=/data/options.json
-FRP_SERVER=$(jq -r .frp_server $CONFIG_PATH)
-FRP_SERVER_PORT=$(jq -r .frp_server_port $CONFIG_PATH)
-FRP_TOKEN=$(jq -r .frp_token $CONFIG_PATH)
+CONFIG_FILE="/data/options.json"
+TMP_FRPC_INI="/tmp/frpc.ini"
 
-cat > /etc/frpc.ini <<EOF
+bashio::log.info "Generating frpc.ini from options.json..."
+
+# 生成配置文件
+cat > "$TMP_FRPC_INI" <<EOF
 [common]
-server_addr = ${FRP_SERVER}
-server_port = ${FRP_SERVER_PORT}
-token = ${FRP_TOKEN}
+server_addr = $(bashio::config 'frp_server')
+server_port = $(bashio::config 'frp_server_port')
+token = $(bashio::config 'frp_token')
 EOF
 
-for row in $(jq -c '.tunnels[]' $CONFIG_PATH); do
-    NAME=$(echo $row | jq -r .name)
-    TYPE=$(echo $row | jq -r .type)
-    LOCAL_HOST=$(echo $row | jq -r .local_host)
-    LOCAL_PORT=$(echo $row | jq -r .local_port)
-    REMOTE_PORT=$(echo $row | jq -r .remote_port)
-    SUBDOMAIN=$(echo $row | jq -r .subdomain)
+for tunnel in $(bashio::config 'tunnels|keys'); do
+    name=$(bashio::config "tunnels[${tunnel}].name")
+    type=$(bashio::config "tunnels[${tunnel}].type")
+    local_host=$(bashio::config "tunnels[${tunnel}].local_host")
+    local_port=$(bashio::config "tunnels[${tunnel}].local_port")
+    remote_port=$(bashio::config "tunnels[${tunnel}].remote_port")
+    subdomain=$(bashio::config "tunnels[${tunnel}].subdomain")
 
-    echo "[$NAME]" >> /etc/frpc.ini
-    echo "type = $TYPE" >> /etc/frpc.ini
-    echo "local_ip = $LOCAL_HOST" >> /etc/frpc.ini
-    echo "local_port = $LOCAL_PORT" >> /etc/frpc.ini
+    echo "[${name}]" >> "$TMP_FRPC_INI"
+    echo "type = ${type}" >> "$TMP_FRPC_INI"
+    echo "local_ip = ${local_host}" >> "$TMP_FRPC_INI"
+    echo "local_port = ${local_port}" >> "$TMP_FRPC_INI"
 
-    if [ "$TYPE" = "tcp" ] && [ "$REMOTE_PORT" != "null" ]; then
-        echo "remote_port = $REMOTE_PORT" >> /etc/frpc.ini
+    if [ "$type" = "tcp" ]; then
+        echo "remote_port = ${remote_port}" >> "$TMP_FRPC_INI"
     fi
 
-    if [ "$TYPE" = "http" ] && [ "$SUBDOMAIN" != "null" ]; then
-        echo "subdomain = $SUBDOMAIN" >> /etc/frpc.ini
+    if [ "$type" = "http" ]; then
+        echo "subdomain = ${subdomain}" >> "$TMP_FRPC_INI"
     fi
 
-    echo "" >> /etc/frpc.ini
 done
 
-echo "启动 frpc..."
-cat /etc/frpc.ini
-exec frpc -c /etc/frpc.ini
+bashio::log.info "Starting frpc..."
+exec frpc -c "$TMP_FRPC_INI"
