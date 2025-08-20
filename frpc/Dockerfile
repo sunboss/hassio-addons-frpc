@@ -1,20 +1,19 @@
-ARG BUILD_FROM=ghcr.io/hassio-addons/base:14.3.2
+ARG BUILD_FROM=ghcr.io/hassio-addons/base:14.0.0
 FROM ${BUILD_FROM}
 
-# 设置工作目录
-WORKDIR /app
+# 安装 FRP
+RUN apk add --no-cache curl unzip \
+    && curl -L https://github.com/fatedier/frp/releases/download/v0.59.0/frp_0.59.0_linux_amd64.tar.gz -o /tmp/frp.tar.gz \
+    && tar -xzf /tmp/frp.tar.gz -C /tmp \
+    && mv /tmp/frp_0.59.0_linux_amd64/frpc /usr/bin/frpc \
+    && chmod +x /usr/bin/frpc \
+    && rm -rf /tmp/*
 
-# 下载 frpc
-RUN apk add --no-cache curl \
-  && FRP_VERSION=$(curl -s https://api.github.com/repos/fatedier/frp/releases/latest | grep tag_name | cut -d '"' -f4 | sed 's/v//') \
-  && wget https://github.com/fatedier/frp/releases/download/v${FRP_VERSION}/frp_${FRP_VERSION}_linux_amd64.tar.gz -O frp.tar.gz \
-  && tar -xzf frp.tar.gz --strip-components=1 \
-  && mv frpc /usr/local/bin/frpc \
-  && chmod +x /usr/local/bin/frpc \
-  && rm -rf frp.tar.gz
+# 拷贝 rootfs 里的 s6 服务定义
+COPY rootfs /
 
-# 拷贝运行脚本
-COPY run.sh /run.sh
-RUN chmod +x /run.sh
-
-CMD ["/run.sh"]
+# 镜像标签
+LABEL \
+    io.hass.version="1.0.0" \
+    io.hass.type="addon" \
+    io.hass.name="FRPC"
